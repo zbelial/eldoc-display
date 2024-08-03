@@ -87,7 +87,8 @@
   "Child frame showing eldoc.")
 
 (defvar-local eldoc-posframe--old-eldoc-functions nil
-  "The original value of ‘eldoc-display-functions’ before enabling eldoc-posframe.")
+  "The original value of ‘eldoc-display-functions’
+before enabling eldoc-posframe.")
 
 (defun eldoc-posframe--enable ()
   "Enable eldoc-posframe."
@@ -145,12 +146,6 @@ See `posframe-show' for more infor about hidehandler and INFO ."
 
 (defun eldoc-posframe--display (str)
   (let* ((buffer (get-buffer-create eldoc-posframe--buffer-name))
-         (bg-mode (frame-parameter nil 'background-mode))
-         (max-line-no 0)
-         (prefix-len 0)
-         (line-no-prefix "")
-         (blank-prefix "")
-         (padding "  ")
          (font-height (face-attribute 'default :height))
          (frame-font eldoc-posframe-frame-font)
          first-line-p)
@@ -162,20 +157,29 @@ See `posframe-show' for more infor about hidehandler and INFO ."
                eldoc-posframe-frame-font-fraction
                (> eldoc-posframe-frame-font-fraction 0.0))
       (setq frame-font nil)
-      (setq font-height (round (* font-height eldoc-posframe-frame-font-fraction))))
-    (setq eldoc-posframe--frame (posframe-show buffer
-                                               :poshandler #'posframe-poshandler-window-top-right-corner
-                                               :font frame-font
-                                               :border-width eldoc-posframe-border-width
-                                               :background-color eldoc-posframe-background-color
-                                               :internal-border-color eldoc-posframe-border-color
-                                               :internal-border-width eldoc-posframe-border-width
-                                               :min-width (min (max eldoc-posframe-frame-min-width (/ (window-width) 3)) (window-width))
-                                               :min-height eldoc-posframe-frame-min-height
-                                               :max-width (min eldoc-posframe-frame-max-width (/ (window-width) 2))
-                                               :accept-focus nil
-                                               :hidehandler #'eldoc-posframe--hidehandler-when-buffer-change
-                                               :timeout eldoc-posframe-frame-autohide-timeout))
+      (setq font-height (round
+                         (* font-height eldoc-posframe-frame-font-fraction))))
+    (setq eldoc-posframe--frame
+          (posframe-show buffer
+                         :poshandler
+                         #'posframe-poshandler-window-top-right-corner
+                         :font frame-font
+                         :border-width eldoc-posframe-border-width
+                         :background-color eldoc-posframe-background-color
+                         :internal-border-color eldoc-posframe-border-color
+                         :internal-border-width eldoc-posframe-border-width
+                         :min-width
+                         (min (max
+                               eldoc-posframe-frame-min-width
+                               (/ (window-width) 3))
+                              (window-width))
+                         :min-height eldoc-posframe-frame-min-height
+                         :max-width
+                         (min eldoc-posframe-frame-max-width (/ (window-width) 2))
+                         :accept-focus nil
+                         :hidehandler
+                         #'eldoc-posframe--hidehandler-when-buffer-change
+                         :timeout eldoc-posframe-frame-autohide-timeout))
     (when font-height
       (set-face-attribute 'default eldoc-posframe--frame :height font-height))))
 
