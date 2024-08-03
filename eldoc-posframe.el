@@ -71,11 +71,8 @@
   :safe 'integerp
   :group 'eldoc-posframe)
 
-(defvar eldoc-posframe--buffer-name "*eldoc-posframe*"
+(defvar eldoc-posframe--buffer-name " *eldoc-posframe*"
   "Name of buffer used to show context.")
-
-(defvar eldoc-posframe--indent-level 0
-  "Indent level used to generate context information.")
 
 (defvar eldoc-posframe-background-color "#000000"
   "Background color for eldoc-posframe posframe")
