@@ -144,6 +144,26 @@ See `posframe-show' for more infor about hidehandler and INFO ."
         (and (buffer-live-p parent-buffer)
              (not (equal parent-buffer (current-buffer)))))))
 
+(defun eldoc-posframe-poshandler-window-top-right-corner (info)
+  "Posframe's position handler.
+
+This poshandler function let top right corner of posframe align to
+top left right of window.
+
+The structure of INFO can be found in docstring of
+`posframe-show'."
+  (let* ((window-left (plist-get info :parent-window-left))
+         (window-top (plist-get info :parent-window-top))
+         (window-width (plist-get info :parent-window-width))
+         (posframe-width (plist-get info :posframe-width))
+         (header-line-height (plist-get info :header-line-height))
+         (tab-line-height (plist-get info :tab-line-height)))
+    (cons (+ window-left window-width
+             (- 0 posframe-width))
+          (+ window-top
+             header-line-height
+             tab-line-height))))
+
 (defun eldoc-posframe--display (str)
   (let* ((buffer (get-buffer-create eldoc-posframe--buffer-name))
          (font-height (face-attribute 'default :height))
@@ -162,7 +182,7 @@ See `posframe-show' for more infor about hidehandler and INFO ."
     (setq eldoc-posframe--frame
           (posframe-show buffer
                          :poshandler
-                         #'posframe-poshandler-window-top-right-corner
+                         #'eldoc-posframe-poshandler-window-top-right-corner
                          :font frame-font
                          :border-width eldoc-posframe-border-width
                          :background-color eldoc-posframe-background-color
