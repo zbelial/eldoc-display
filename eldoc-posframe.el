@@ -44,6 +44,12 @@
   :safe 'integerp
   :group 'eldoc-posframe)
 
+(defcustom eldoc-posframe-frame-max-height 18
+  "Maximum height of the child frame."
+  :type 'integer
+  :safe 'integerp
+  :group 'eldoc-posframe)
+
 (defcustom eldoc-posframe-frame-min-height 5
   "Minimal height of the child frame."
   :type 'integer
@@ -196,6 +202,8 @@ The structure of INFO can be found in docstring of
                          :min-height eldoc-posframe-frame-min-height
                          :max-width
                          (min eldoc-posframe-frame-max-width (/ (window-width) 2))
+                         :max-height
+                         (min eldoc-posframe-frame-max-height (* 2 (/ (window-height) 3)))
                          :accept-focus nil
                          :hidehandler
                          #'eldoc-posframe--hidehandler-when-buffer-change
