@@ -6,7 +6,7 @@
 
 ;; URL: https://github.com/zbelial/eldoc-posframe
 ;; Version: 0.1.0
-;; Package-Requires: ((posframe "1.0.0"))
+;; Package-Requires: ((posframe "1.0.0") pb)
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -78,8 +78,8 @@
   :group 'eldoc-display)
 
 (defcustom eldoc-display-frontend nil
-  "Display eldoc in which frontend, 'posframe, 'window.
-If it's null, use posframe if `display-graphic-p' returns t, otherwise, use window."
+  "Display eldoc in which frontend, 'posframe or 'buffer.
+If it's null, use posframe if `display-graphic-p' returns t, otherwise, use buffer."
   :type 'boolean
   :group 'eldoc-display)
 
@@ -104,12 +104,35 @@ before enabling eldoc-display.")
 
 (defun eldoc-display--enable ()
   "Enable eldoc-posframe."
-  (setq-local eldoc-display--old-eldoc-functions
-              eldoc-display-functions)
-  (setq-local eldoc-display-functions
-              (cons 'eldoc-display--display-function
-                    (remq 'eldoc-display-in-echo-area
-                          eldoc-display-functions))))
+  (let ((fallback t))
+    (cond
+     ((and (eq eldoc-display-frontend 'posframe)
+           (display-graphic-p)
+           (require 'posframe nil t))
+      (setq fallback nil))
+     ((and (eq eldoc-display-frontend 'buffer)
+           (require 'pb nil t))
+      (setq fallback nil))
+     (t
+      (cond
+       ((and (display-graphic-p)
+             (require 'posframe nil t))
+        (setq fallback nil))
+       ((require 'pb nil t)
+        (setq fallback nil)))))
+    (unless fallback
+      (setq-local eldoc-display--old-eldoc-functions
+                  eldoc-display-functions)
+      (setq-local eldoc-display-functions
+                  (cons 'eldoc-display--display-function
+                        (remq 'eldoc-display-in-echo-area
+                              eldoc-display-functions))))))
+
+(defun eldoc-display--clear-pb-buffers (&optional main)
+  (let* ((main (or main (current-buffer)))
+         (follower (pb-follower-buffer main)))
+    (pb-unpair-two-buffers main follower)
+    (kill-buffer follower)))
 
 (defun eldoc-display--disable ()
   "Disable eldoc-posframe."
@@ -123,10 +146,23 @@ before enabling eldoc-display.")
     (setq-local eldoc-display-functions
                 (cons 'eldoc-display-in-echo-area
                       eldoc-display-functions)))
-
-  (when eldoc-display--posframe-frame
-    (delete-frame eldoc-display--posframe-frame)
-    (setq eldoc-display--posframe-frame nil)))
+  (cond
+   ((eq eldoc-display-frontend 'posframe)
+    (when eldoc-display--posframe-frame
+      (delete-frame eldoc-display--posframe-frame)
+      (setq eldoc-display--posframe-frame nil)))
+   ((eq eldoc-display-frontend 'buffer)
+    (if (require 'pb nil t)
+        (eldoc-display--clear-pb-buffers (current-buffer))))
+   (t
+    (cond
+     ((display-graphic-p)
+      (when eldoc-display--posframe-frame
+        (delete-frame eldoc-display--posframe-frame)
+        (setq eldoc-display--posframe-frame nil)))
+     (t
+      (if (require 'pb nil t)
+          (eldoc-display--clear-pb-buffers (current-buffer))))))))
 
 (defun eldoc-display--compose-doc (doc)
   "Compose a doc passed from eldoc.
@@ -219,29 +255,23 @@ The structure of INFO can be found in docstring of
           (set-face-attribute 'default eldoc-display--posframe-frame :height font-height)))
     (message "posframe is unavailable, install it first.")))
 
-(defvar eldoc-display--popup nil)
-
-(defun eldoc-display--in-popup (str)
-  (if (require 'popup nil t)
-      (let* ((parent-window (selected-window))
-             (parent-window-start (window-start parent-window))
-             (parent-window-end (window-end parent-window))
-             (parent-window-top (window-pixel-top parent-window))
-             (parent-window-left (window-pixel-left parent-window))
-             (parent-window-width (window-pixel-width parent-window))
-             (parent-window-height (window-pixel-height parent-window))
-             (mode-line-height (window-mode-line-height))
-             (minibuffer-height (window-pixel-height (minibuffer-window)))
-             (header-line-height (window-header-line-height parent-window))
-             (tab-line-height (if (functionp 'window-tab-line-height)
-                                  (window-tab-line-height)
-                                0))
-             (mouse-position (cdr (mouse-pixel-position))))
-        )
-    (message "popup is unavailable, install it first.")))
+(defun eldoc-display--in-pb-buffer (str)
+  (if (require 'pb nil t)
+      (let ((follower (pb-follower-buffer (current-buffer))))
+        (unless follower
+          (setq follower (get-buffer-create (concat " *eldoc-display " (buffer-name))))
+          (pb-pair-two-buffers (current-buffer) follower "h" 0.25)
+          (pb-sync-window))
+        (with-current-buffer follower
+          (setq buffer-read-only nil)
+          (visual-line-mode t)
+          (erase-buffer)
+          (goto-char (point-min))
+          (insert str)
+          (setq buffer-read-only t)))))
 
 (defun eldoc-display--display-function (docs interactive)
-  "Display DOCS in a posframe or a popup.
+  "Display DOCS in a posframe or a buffer.
 For DOCS and INTERACTIVE see ‘eldoc-display-functions’."
   (let ((doc (string-trim (string-join
                            (mapcar #'eldoc-display--compose-doc docs)
@@ -250,14 +280,14 @@ For DOCS and INTERACTIVE see ‘eldoc-display-functions’."
       (cond
        ((eq eldoc-display-frontend 'posframe)
         (eldoc-display--in-posframe doc))
-       ((eq eldoc-display-frontend 'popup)
-        (eldoc-display--in-popup doc))
+       ((eq eldoc-display-frontend 'buffer)
+        (eldoc-display--in-pb-buffer doc))
        (t
         (cond
          ((display-graphic-p)
           (eldoc-display--in-posframe doc))
          (t
-          (eldoc-display--in-popup doc))))))))
+          (eldoc-display--in-pb-buffer doc))))))))
 
 ;;;###autoload
 (define-minor-mode eldoc-display-mode
