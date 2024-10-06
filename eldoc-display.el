@@ -32,25 +32,25 @@
   "Show eldoc info."
   :group 'treesit)
 
-(defcustom eldoc-display-min-width 60
+(defcustom eldoc-display-posframe-min-width 60
   "Minimal width of the child frame."
   :type 'integer
   :safe 'integerp
   :group 'eldoc-display)
 
-(defcustom eldoc-display-max-width 90
+(defcustom eldoc-display-posframe-max-width 90
   "Maximum width of the child frame."
   :type 'integer
   :safe 'integerp
   :group 'eldoc-display)
 
-(defcustom eldoc-display-max-height 18
+(defcustom eldoc-display-posframe-max-height 18
   "Maximum height of the child frame."
   :type 'integer
   :safe 'integerp
   :group 'eldoc-display)
 
-(defcustom eldoc-display-min-height 5
+(defcustom eldoc-display-posframe-min-height 5
   "Minimal height of the child frame."
   :type 'integer
   :safe 'integerp
@@ -253,14 +253,14 @@ The structure of INFO can be found in docstring of
                              :internal-border-width eldoc-display-posframe-border-width
                              :min-width
                              (min (max
-                                   eldoc-display-min-width
+                                   eldoc-display-posframe-min-width
                                    (/ (window-width) 3))
                                   (window-width))
-                             :min-height eldoc-display-min-height
+                             :min-height eldoc-display-posframe-min-height
                              :max-width
-                             (min eldoc-display-max-width (/ (window-width) 2))
+                             (min eldoc-display-posframe-max-width (/ (window-width) 2))
                              :max-height
-                             (min eldoc-display-max-height (* 2 (/ (window-height) 3)))
+                             (min eldoc-display-posframe-max-height (* 2 (/ (window-height) 3)))
                              :accept-focus nil
                              :hidehandler
                              #'eldoc-display--posframe-hidehandler-when-buffer-change
