@@ -32,39 +32,10 @@
   "Show eldoc info."
   :group 'treesit)
 
-(defcustom eldoc-display-posframe-min-width 60
-  "Minimal width of the child frame."
+(defcustom eldoc-display-posframe-height-adjust 4
+  "Adjust posframe height in order not to hide mode line and minibuffer."
   :type 'integer
   :safe 'integerp
-  :group 'eldoc-display)
-
-(defcustom eldoc-display-posframe-max-width 90
-  "Maximum width of the child frame."
-  :type 'integer
-  :safe 'integerp
-  :group 'eldoc-display)
-
-(defcustom eldoc-display-posframe-max-height 18
-  "Maximum height of the child frame."
-  :type 'integer
-  :safe 'integerp
-  :group 'eldoc-display)
-
-(defcustom eldoc-display-posframe-min-height 5
-  "Minimal height of the child frame."
-  :type 'integer
-  :safe 'integerp
-  :group 'eldoc-display)
-
-(defcustom eldoc-display-posframe-frame-font nil
-  "Font of the child frame."
-  :type 'string
-  :group 'eldoc-display)
-
-(defcustom eldoc-display-posframe-frame-font-fraction nil
-  "Fraction of font height in the child frame. Prefer this to `eldoc-display-posframe-frame-font'."
-  :type 'float
-  :safe 'floatp
   :group 'eldoc-display)
 
 (defcustom eldoc-display-doc-separator "\n\n"
@@ -232,16 +203,13 @@ The structure of INFO can be found in docstring of
              (font-height (face-attribute 'default :height))
              (frame-font eldoc-display-posframe-frame-font)
              first-line-p)
+        ;; FIXME make text scale configurable
         (with-current-buffer buffer
+          (setq text-scale-mode-amount -1)
           (erase-buffer)
           (goto-char (point-min))
-          (insert str))
-        (when (and font-height
-                   eldoc-display-posframe-frame-font-fraction
-                   (> eldoc-display-posframe-frame-font-fraction 0.0))
-          (setq frame-font nil)
-          (setq font-height (round
-                             (* font-height eldoc-display-posframe-frame-font-fraction))))
+          (insert str)
+          (text-scale-mode +1))
         (setq eldoc-display--posframe-frame
               (posframe-show buffer
                              :poshandler
@@ -251,23 +219,22 @@ The structure of INFO can be found in docstring of
                              :background-color eldoc-displya-posframe-background-color
                              :internal-border-color eldoc-display-posframe-border-color
                              :internal-border-width eldoc-display-posframe-border-width
-                             :min-width
-                             (min (max
-                                   eldoc-display-posframe-min-width
-                                   (/ (window-width) 3))
-                                  (window-width))
-                             :min-height eldoc-display-posframe-min-height
-                             :max-width
-                             (min eldoc-display-posframe-max-width (/ (window-width) 2))
-                             :max-height
-                             (min eldoc-display-posframe-max-height (* 2 (/ (window-height) 3)))
+                             :width (/ (window-width) 5)
+                             :height (- (window-height) eldoc-display-posframe-height-adjust)
                              :accept-focus nil
                              :hidehandler
                              #'eldoc-display--posframe-hidehandler-when-buffer-change
-                             :timeout eldoc-display-posframe-autohide-timeout))
-        (when font-height
-          (set-face-attribute 'default eldoc-display--posframe-frame :height font-height)))
+                             :timeout eldoc-display-posframe-autohide-timeout)))
     (message "posframe is unavailable, install it first.")))
+
+;; FIXME after hiding posframe, it won't show automatically again.
+(defun eldoc-display-window-size-change-function (_f)
+  "Hide posframe."
+  (when (and eldoc-display--posframe-frame
+             eldoc-display--posframe-buffer-name
+             (buffer-live-p (get-buffer eldoc-display--posframe-buffer-name)))
+    (posframe-hide eldoc-display--posframe-buffer-name)))
+(add-hook 'window-size-change-functions #'eldoc-display-window-size-change-function)
 
 (defun eldoc-display--in-side-window (str)
   "Display eldoc in a side window."
@@ -276,6 +243,7 @@ The structure of INFO can be found in docstring of
             (split-type (if (eq eldoc-display-side-window-side 'bottom) "v" "h")))
         (unless follower
           (setq follower (get-buffer-create (concat " *eldoc-display " (buffer-name))))
+          ;; FIXME make text scale configurable
           (with-current-buffer follower
             (setq text-scale-mode-amount -1)
             (text-scale-mode +1))
