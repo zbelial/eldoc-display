@@ -200,8 +200,6 @@ The structure of INFO can be found in docstring of
   "Display eldoc in a posframe."
   (if (require 'posframe nil t)
       (let* ((buffer (get-buffer-create eldoc-display--posframe-buffer-name))
-             (font-height (face-attribute 'default :height))
-             (frame-font eldoc-display-posframe-frame-font)
              first-line-p)
         ;; FIXME make text scale configurable
         (with-current-buffer buffer
@@ -214,7 +212,6 @@ The structure of INFO can be found in docstring of
               (posframe-show buffer
                              :poshandler
                              #'eldoc-display-posframe-poshandler-window-top-right-corner
-                             :font frame-font
                              :border-width eldoc-display-posframe-border-width
                              :background-color eldoc-displya-posframe-background-color
                              :internal-border-color eldoc-display-posframe-border-color
