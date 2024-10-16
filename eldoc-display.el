@@ -48,6 +48,10 @@
   :safe 'integerp
   :group 'eldoc-display)
 
+(defcustom eldoc-display-posframe-parameters nil
+  "The frame parameters used by posframe."
+  :type 'string)
+
 (defcustom eldoc-display-frontend nil
   "Display eldoc in which frontend, posframe or side-window.
 If it's nil, use posframe if `display-graphic-p' returns t and posframe is usable,
@@ -219,12 +223,15 @@ The structure of INFO can be found in docstring of
                              :width (/ (window-width) 5)
                              :height (- (window-height) eldoc-display-posframe-height-adjust)
                              :accept-focus nil
+                             :override-parameters eldoc-display-posframe-parameters
                              :hidehandler
                              #'eldoc-display--posframe-hidehandler-when-buffer-change
                              :timeout eldoc-display-posframe-autohide-timeout)))
     (message "posframe is unavailable, install it first.")))
 
 ;; FIXME after hiding posframe, it won't show automatically again.
+;; Also, after window-size-change event, it won't show for the first time.
+;; It seems that it showes and hides immediately. Have no idea why.
 (defun eldoc-display-window-size-change-function (_f)
   "Hide posframe."
   (when (and eldoc-display--posframe-frame
