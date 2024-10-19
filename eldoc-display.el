@@ -32,20 +32,46 @@
   "Show eldoc info."
   :group 'treesit)
 
-(defcustom eldoc-display-posframe-height-adjust 4
-  "Adjust posframe height in order not to hide mode line and minibuffer."
+(defcustom eldoc-display-posframe-height-adjust 0
+  "Adjust posframe height in lines in order not to hide mode line and minibuffer."
   :type 'integer
-  :safe 'integerp
+  :group 'eldoc-display)
+
+(defcustom eldoc-display-posframe-x-adjust 0
+  "Adjust posframe's x position in pixel."
+  :type 'integer
   :group 'eldoc-display)
 
 (defcustom eldoc-display-doc-separator "\n\n"
   "The separator between documentation from different sources."
   :type 'string)
 
+(defcustom eldoc-display-posframe-min-width nil
+  "Minimal width of the child frame.
+When nil, use `window-width' divided by 5."
+  :type 'integer
+  :group 'eldoc-display)
+
+(defcustom eldoc-display-posframe-max-width nil
+  "Maximum width of the child frame.
+When nil, use `window-width' divided by 5."
+  :type 'integer
+  :group 'eldoc-display)
+
+(defcustom eldoc-display-posframe-min-height 5
+  "Minimal height of the child frame."
+  :type 'integer
+  :group 'eldoc-display)
+
+(defcustom eldoc-display-posframe-max-height nil
+  "Maximum height of the child frame.
+When nil, use `window-height' minus `eldoc-display-posframe-height-adjust'."
+  :type 'integer
+  :group 'eldoc-display)
+
 (defcustom eldoc-display-posframe-autohide-timeout 15
   "Child frame will hide itself after this seconds."
   :type 'integer
-  :safe 'integerp
   :group 'eldoc-display)
 
 (defcustom eldoc-display-posframe-parameters nil
@@ -71,7 +97,6 @@ When nil, use right."
 or width(when `eldoc-display-side-window-side' is right) of the side window,
 propotion of the frame's geomatric size respectively."
   :type 'float
-  :safe 'floatp
   :group 'eldoc-display)
 
 (defvar eldoc-display--posframe-buffer-name " *eldoc-posframe*"
@@ -195,7 +220,8 @@ The structure of INFO can be found in docstring of
          (header-line-height (plist-get info :header-line-height))
          (tab-line-height (plist-get info :tab-line-height)))
     (cons (+ window-left window-width
-             (- 0 posframe-width))
+             (- 0 posframe-width)
+             (or eldoc-display-posframe-x-adjust 0))
           (+ window-top
              header-line-height
              tab-line-height))))
@@ -220,8 +246,19 @@ The structure of INFO can be found in docstring of
                              :background-color eldoc-displya-posframe-background-color
                              :internal-border-color eldoc-display-posframe-border-color
                              :internal-border-width eldoc-display-posframe-border-width
-                             :width (/ (window-width) 5)
-                             :height (- (window-height) eldoc-display-posframe-height-adjust)
+                             :min-width
+                             (or eldoc-display-posframe-min-width
+                                 (/ (window-width) 5))
+                             :max-width
+                             (or eldoc-display-posframe-max-width
+                                 (/ (window-width) 5))
+                             :min-height (or eldoc-display-posframe-min-height 5)
+                             :max-height
+                             (or eldoc-display-posframe-max-height
+                                 (- (window-height)
+                                    eldoc-display-posframe-height-adjust))
+                             ;; :width (/ (window-width) 5)
+                             ;; :height (- (window-height) eldoc-display-posframe-height-adjust)
                              :accept-focus nil
                              :override-parameters eldoc-display-posframe-parameters
                              :hidehandler
@@ -238,7 +275,8 @@ The structure of INFO can be found in docstring of
              eldoc-display--posframe-buffer-name
              (buffer-live-p (get-buffer eldoc-display--posframe-buffer-name)))
     (posframe-hide eldoc-display--posframe-buffer-name)))
-(add-hook 'window-size-change-functions #'eldoc-display-window-size-change-function)
+;; (add-hook 'window-size-change-functions #'eldoc-display-window-size-change-function)
+;; (remove-hook 'window-size-change-functions #'eldoc-display-window-size-change-function)
 
 (defun eldoc-display--in-side-window (str)
   "Display eldoc in a side window."
