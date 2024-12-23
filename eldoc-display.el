@@ -301,13 +301,18 @@ The structure of INFO can be found in docstring of
           (setq buffer-read-only t)))
     (message "pb is unavailable, install it first from https://github.com/zbelial/pb.el.")))
 
+(defvar-local eldoc-display--prev-doc nil)
 (defun eldoc-display--display-function (docs interactive)
   "Display DOCS in a posframe or a buffer.
 For DOCS and INTERACTIVE see ‘eldoc-display-functions’."
   (let ((doc (string-trim (string-join
                            (mapcar #'eldoc-display--compose-doc docs)
                            eldoc-display-doc-separator))))
-    (when (length> (or doc "") 0)
+    (when (and (length> (or doc "") 0)
+               (or (null eldoc-display--prev-doc)
+                   (not (string-equal (substring-no-properties eldoc-display--prev-doc)
+                                      (substring-no-properties doc)))))
+      (setq eldoc-display--prev-doc doc)
       (cond
        ((and (eq eldoc-display--frontend 'posframe)
              (display-graphic-p))
