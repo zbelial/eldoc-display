@@ -6,7 +6,7 @@
 
 ;; URL: https://github.com/zbelial/eldoc-posframe
 ;; Version: 0.1.0
-;; Package-Requires: ((posframe "1.0.0") pb)
+;; Package-Requires: ((posframe "1.0.0"))
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -99,8 +99,11 @@ propotion of the frame's geomatric size respectively."
   :type 'float
   :group 'eldoc-display)
 
-(defvar eldoc-display--posframe-buffer-name " *eldoc-posframe*"
-  "Name of buffer used to show context.")
+(defvar eldoc-display--side-window-buffer-name " *eldoc display side window*"
+  "Name of buffer used to show eldoc.")
+
+(defvar eldoc-display--posframe-buffer-name " *eldoc display posframe*"
+  "Name of buffer used to show eldoc.")
 
 (defvar eldoc-displya-posframe-background-color "#000000"
   "Background color for eldoc-posframe posframe")
@@ -121,6 +124,10 @@ before enabling eldoc-display.")
 (defvar-local eldoc-display--frontend nil
   "Remember which frontend is used actually in current buffer.")
 
+(defvar eldoc-display--side-window-parameters
+  '(window-parameters . ((no-other-window . t)
+                         (no-delete-other-windows . t))))
+
 (defun eldoc-display--enable ()
   "Enable eldoc-posframe."
   (setq eldoc-display--frontend nil)
@@ -129,15 +136,14 @@ before enabling eldoc-display.")
          (display-graphic-p)
          (require 'posframe nil t))
     (setq eldoc-display--frontend 'posframe))
-   ((and (eq eldoc-display-frontend 'side-window)
-         (require 'pb nil t))
+   ((eq eldoc-display-frontend 'side-window)
     (setq eldoc-display--frontend 'side-window))
    (t
     (cond
      ((and (display-graphic-p)
            (require 'posframe nil t))
       (setq eldoc-display--frontend 'posframe))
-     ((require 'pb nil t)
+     (t
       (setq eldoc-display--frontend 'side-window)))))
   (when eldoc-display--frontend
     (setq-local eldoc-display--old-eldoc-functions
@@ -147,12 +153,13 @@ before enabling eldoc-display.")
                       (remq 'eldoc-display-in-echo-area
                             eldoc-display-functions)))))
 
-(defun eldoc-display--clear-side-window (&optional main)
-  (if (require 'pb nil t)
-      (let* ((main (or main (current-buffer)))
-             (follower (pb-follower-buffer main)))
-        (pb-unpair-two-buffers main follower)
-        (kill-buffer follower))))
+(defun eldoc-display--clear-posframe ()
+  (when eldoc-display--posframe-frame
+    (delete-frame eldoc-display--posframe-frame)
+    (setq eldoc-display--posframe-frame nil)))
+
+(defun eldoc-display--clear-side-window ()
+  (ignore-errors (delete-window (get-buffer-window eldoc-display--buffer-name))))
 
 (defun eldoc-display--disable ()
   "Disable eldoc-posframe."
@@ -166,16 +173,8 @@ before enabling eldoc-display.")
     (setq-local eldoc-display-functions
                 (cons 'eldoc-display-in-echo-area
                       eldoc-display-functions)))
-  (cond
-   ((eq eldoc-display--frontend 'posframe)
-    (when eldoc-display--posframe-frame
-      (delete-frame eldoc-display--posframe-frame)
-      (setq eldoc-display--posframe-frame nil)))
-   ((eq eldoc-display--frontend 'side-window)
-    (eldoc-display--clear-side-window (current-buffer)))
-   (t
-    ;; nothing
-    )))
+  (eldoc-display--clear-posframe)
+  (eldoc-display--clear-side-window))
 
 (defun eldoc-display--compose-doc (doc)
   "Compose a doc passed from eldoc.
@@ -280,26 +279,14 @@ The structure of INFO can be found in docstring of
 
 (defun eldoc-display--in-side-window (str)
   "Display eldoc in a side window."
-  (if (require 'pb nil t)
-      (let ((follower (pb-follower-buffer (current-buffer)))
-            (split-type (if (eq eldoc-display-side-window-side 'bottom) "v" "h")))
-        (unless follower
-          (setq follower (get-buffer-create (concat " *eldoc-display " (buffer-name))))
-          ;; FIXME make text scale configurable
-          (with-current-buffer follower
-            (setq text-scale-mode-amount -1)
-            (text-scale-mode +1))
-          (pb-pair-two-buffers (current-buffer) follower split-type eldoc-display-side-window-fraction)
-          (pb-sync-window))
-        (with-current-buffer follower
-          (setq buffer-read-only nil)
-          (setq truncate-lines nil)
-          (setq word-wrap t)
-          (erase-buffer)
-          (goto-char (point-min))
-          (insert str)
-          (setq buffer-read-only t)))
-    (message "pb is unavailable, install it first from https://github.com/zbelial/pb.el.")))
+  (message "show in side window")
+  (with-current-buffer (get-buffer-create eldoc-display--side-window-buffer-name)
+    (setq text-scale-mode-amount -1)
+    (erase-buffer)
+    (goto-char (point-min))
+    (insert str)
+    (text-scale-mode +1))
+  (display-buffer (get-buffer-create eldoc-display--side-window-buffer-name)))
 
 (defvar-local eldoc-display--prev-doc nil)
 (defun eldoc-display--display-function (docs interactive)
@@ -318,15 +305,21 @@ For DOCS and INTERACTIVE see ‘eldoc-display-functions’."
              (display-graphic-p))
         (eldoc-display--in-posframe doc))
        ((eq eldoc-display--frontend 'side-window)
-        (eldoc-display--in-side-window doc))
-       (t
-        ;; nothing
-        )))))
+        (eldoc-display--in-side-window doc))))))
+
+(add-to-list 'display-buffer-alist
+             `(,eldoc-display--side-window-buffer-name
+               display-buffer-in-side-window
+               (side . ,eldoc-display-side-window-side)
+               (slot . -1)
+               (window-width . ,eldoc-display-side-window-fraction)
+               ;; ,eldoc-display--side-window-parameters
+               ))
 
 ;;;###autoload
 (define-minor-mode eldoc-display-mode
-  "Display eldoc in a posframe. "
-  :lighter eldoc-posframe-lighter
+  "Display eldoc in a posframe or a side window."
+  :global nil
   (if eldoc-display-mode
       (eldoc-display--enable)
     (eldoc-display--disable)))
