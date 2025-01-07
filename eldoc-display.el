@@ -279,7 +279,6 @@ The structure of INFO can be found in docstring of
 
 (defun eldoc-display--in-side-window (str)
   "Display eldoc in a side window."
-  (message "show in side window")
   (with-current-buffer (get-buffer-create eldoc-display--side-window-buffer-name)
     (setq text-scale-mode-amount -1)
     (erase-buffer)
