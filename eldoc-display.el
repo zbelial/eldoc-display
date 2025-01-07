@@ -6,7 +6,7 @@
 
 ;; URL: https://github.com/zbelial/eldoc-posframe
 ;; Version: 0.1.0
-;; Package-Requires: ((posframe "1.0.0"))
+;; Package-Requires: ()
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -25,8 +25,6 @@
 ;;
 
 ;;; Code:
-
-(require 'posframe)
 
 (defgroup eldoc-display nil
   "Show eldoc info."
