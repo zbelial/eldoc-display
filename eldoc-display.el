@@ -25,6 +25,7 @@
 ;;
 
 ;;; Code:
+(require 'face-remap)
 
 (defgroup eldoc-display nil
   "Show eldoc info."
@@ -115,6 +116,8 @@ propotion of the frame's geomatric size respectively."
 (defvar eldoc-display--posframe-frame nil
   "Child frame showing eldoc.")
 
+(defvar eldoc-display--prev-doc nil)
+
 (defvar-local eldoc-display--old-eldoc-functions nil
   "The original value of ‘eldoc-display-functions’
 before enabling eldoc-display.")
@@ -177,7 +180,7 @@ before enabling eldoc-display.")
   (eldoc-display--clear-side-window))
 
 (defun eldoc-display-toggle-frontend ()
-  "Toggle front end between 'posframe and 'side-windows temporarily in current session."
+  "Toggle front end between posframe and side-window temporarily in current session."
   (interactive)
   (when eldoc-display-mode
     (cond
@@ -245,8 +248,7 @@ The structure of INFO can be found in docstring of
 (defun eldoc-display--in-posframe (str)
   "Display eldoc in a posframe."
   (if (require 'posframe nil t)
-      (let* ((buffer (get-buffer-create eldoc-display--posframe-buffer-name))
-             first-line-p)
+      (let* ((buffer (get-buffer-create eldoc-display--posframe-buffer-name)))
         ;; FIXME make text scale configurable
         (with-current-buffer buffer
           (setq text-scale-mode-amount -1)
@@ -304,7 +306,6 @@ The structure of INFO can be found in docstring of
     (text-scale-mode +1))
   (display-buffer (get-buffer-create eldoc-display--side-window-buffer-name)))
 
-(defvar-local eldoc-display--prev-doc nil)
 (defun eldoc-display--display-function (docs interactive)
   "Display DOCS in a posframe or a buffer.
 For DOCS and INTERACTIVE see ‘eldoc-display-functions’."
