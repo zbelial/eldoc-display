@@ -132,14 +132,16 @@ before enabling eldoc-display.")
   (cond
    ((and (eq eldoc-display-frontend 'posframe)
          (display-graphic-p)
-         (require 'posframe nil t))
+         (require 'posframe nil t)
+         (posframe-workable-p))
     (setq eldoc-display--frontend 'posframe))
    ((eq eldoc-display-frontend 'side-window)
     (setq eldoc-display--frontend 'side-window))
    (t
     (cond
      ((and (display-graphic-p)
-           (require 'posframe nil t))
+           (require 'posframe nil t)
+           (posframe-workable-p))
       (setq eldoc-display--frontend 'posframe))
      (t
       (setq eldoc-display--frontend 'side-window)))))
@@ -157,7 +159,7 @@ before enabling eldoc-display.")
     (setq eldoc-display--posframe-frame nil)))
 
 (defun eldoc-display--clear-side-window ()
-  (ignore-errors (delete-window (get-buffer-window eldoc-display--buffer-name))))
+  (ignore-errors (delete-window (get-buffer-window eldoc-display--side-window-buffer-name))))
 
 (defun eldoc-display--disable ()
   "Disable eldoc-posframe."
@@ -173,6 +175,23 @@ before enabling eldoc-display.")
                       eldoc-display-functions)))
   (eldoc-display--clear-posframe)
   (eldoc-display--clear-side-window))
+
+(defun eldoc-display-toggle-frontend ()
+  "Toggle front end between 'posframe and 'side-windows."
+  (interactive)
+  (when eldoc-display-mode
+    (cond
+     ((and (eq eldoc-display--frontend 'side-window)
+           (and (display-graphic-p)
+                (require 'posframe nil t)
+                (posframe-workable-p)))
+      (setq eldoc-display--prev-doc "")
+      (eldoc-display--clear-side-window)
+      (setq eldoc-display--frontend 'posframe))
+     ((eq eldoc-display--frontend 'posframe)
+      (setq eldoc-display--prev-doc "")
+      (eldoc-display--clear-posframe)
+      (setq eldoc-display--frontend 'side-window)))))
 
 (defun eldoc-display--compose-doc (doc)
   "Compose a doc passed from eldoc.
@@ -298,8 +317,7 @@ For DOCS and INTERACTIVE see ‘eldoc-display-functions’."
                                       (substring-no-properties doc)))))
       (setq eldoc-display--prev-doc doc)
       (cond
-       ((and (eq eldoc-display--frontend 'posframe)
-             (display-graphic-p))
+       ((eq eldoc-display--frontend 'posframe)
         (eldoc-display--in-posframe doc))
        ((eq eldoc-display--frontend 'side-window)
         (eldoc-display--in-side-window doc))))))
