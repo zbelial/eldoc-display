@@ -304,7 +304,7 @@ The structure of INFO can be found in docstring of
     (text-scale-mode +1))
   (display-buffer (get-buffer-create eldoc-display--side-window-buffer-name)))
 
-(defvar-local eldoc-display--prev-doc nil)
+(defvar eldoc-display--prev-doc nil)
 (defun eldoc-display--display-function (docs interactive)
   "Display DOCS in a posframe or a buffer.
 For DOCS and INTERACTIVE see ‘eldoc-display-functions’."
