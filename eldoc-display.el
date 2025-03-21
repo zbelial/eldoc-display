@@ -177,7 +177,7 @@ before enabling eldoc-display.")
   (eldoc-display--clear-side-window))
 
 (defun eldoc-display-toggle-frontend ()
-  "Toggle front end between 'posframe and 'side-windows."
+  "Toggle front end between 'posframe and 'side-windows temporarily in current session."
   (interactive)
   (when eldoc-display-mode
     (cond
